@@ -32,14 +32,12 @@ export default class TdtMapService extends BaseMapService<any> {
   private origin: { x: number; y: number };
 
   // init
+  // 设置 Marker 容器
   public addMarkerContainer(): void {
-    return;
+    this.markerContainer = this.map.getPanes()?.markerPane as HTMLElement;
   }
 
-  // @ts-ignore
-  public getMarkerContainer(): HTMLElement {
-    return;
-  }
+
 
   public getOverlayContainer(): HTMLElement | undefined {
     const overlayPane = this.map.getPanes()?.overlayPane;
@@ -60,8 +58,14 @@ export default class TdtMapService extends BaseMapService<any> {
       lat: bounds.getNorthEast().lat,
     });
 
-    this.sceneContainer.style.transform = `translate3d(${x}px, ${y}px, 0px)`;
-
+    let nwY = this.map.lngLatToContainerPoint({ lng: -180, lat: 90 }).y;
+    nwY = nwY > 0 ? nwY : 0;
+    this.sceneContainer.style.transform = `translate3d(${x}px, ${
+      y - nwY
+    }px, 0px)`;
+    const size = this.map.getSize();
+    this.sceneContainer.style.width = `${size.x}px`;
+    this.sceneContainer.style.height = `${size.y}px`;
     this.handleCameraChanged();
   }
 
@@ -152,9 +156,12 @@ export default class TdtMapService extends BaseMapService<any> {
     });
 
     this.map.on('move', this.update, this);
+    this.map.on('resize', this.update, this);
   }
 
   public destroy(): void {
+    this.map.off('move', this.update, this);
+    this.map.off('resize', this.update, this);
     return;
   }
 
@@ -323,6 +330,7 @@ export default class TdtMapService extends BaseMapService<any> {
 
   public lngLatToPixel([lng, lat]: Point): IPoint {
     const pixel = this.map.lngLatToLayerPoint({ lng, lat });
+
     return {
       x: pixel.x,
       y: pixel.y,
